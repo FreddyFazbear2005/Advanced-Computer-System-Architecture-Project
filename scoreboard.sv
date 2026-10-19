@@ -13,6 +13,9 @@ class Scoreboard #(
           monitor_to_scoreboard_mailbox, int number_of_transactions);
           this.monitor_to_scoreboard_mailbox = monitor_to_scoreboard_mailbox;
           this.number_of_transactions = number_of_transactions;
+          foreach(main_memory[i]) 
+              main_memory[i] = i;
+          pending_transaction = 1'b0;
     endfunction
 
     int current_number_of_transactions = 0;
@@ -33,16 +36,13 @@ class Scoreboard #(
 
     bit rst_seen = 1'b0;
     int error_count = 0;
-    int write_hit_latency;
-    int read_hit_latency;
-    int write_miss_latency;
-    int read_miss_latency;
+    int hit_latency = 3;
+    int miss_latency_allocate_only = LATENCY + 6;
+    int miss_latency_allocate_and_write_back = 2*LATENCY + 9;
     int latency_counter = 0;
 
-    foreach(main_memory[i]) 
-        main_memory[i] = i;
     task run();
-        SampledOutput so;
+        SampledOutput #(.ADDR_WIDTH(ADDR_WIDTH),.DATA_WIDTH(DATA_WIDTH),.NUM_SETS(NUM_SETS),.LATENCY(LATENCY)) so;
         forever begin 
             monitor_to_scoreboard_mailbox.get(so);
             if(rst_seen) 
@@ -87,6 +87,7 @@ class Scoreboard #(
 
     task reset_scoreboard();
         begin 
+            rst_seen = 1'b1;
             expected_rdata = '0;
             expected_cpu_ready = '0;
             foreach(data_array[i,j]) 
@@ -104,45 +105,99 @@ class Scoreboard #(
 
 
     task update_scoreboard(SampledOutput #(.ADDR_WIDTH(ADDR_WIDTH),.DATA_WIDTH(DATA_WIDTH),.NUM_SETS(NUM_SETS),.LATENCY(LATENCY)) so);
+        logic [TAG_WIDTH-1:0] current_tag;
+        logic [INDEX_WIDTH-1:0] current_index;
+        logic access_way0;
+        logic access_way1;
         begin 
-            if(so.cpu_req === 1'b0) begin 
-                return;
-            end
             if(latency_counter > 0) begin 
                 latency_counter--;
-                expected_cpu_ready = 1'b0
+                expected_cpu_ready = 1'b0;
                 return;
             end
             else begin 
                 latency_counter = 0;
-                expected_rdata = new_expected_rdata;
-                expected_cpu_ready = 1'b1;
+                expected_cpu_ready = pending_transaction;
+                if(pending_transaction) 
+                    expected_rdata = new_expected_rdata;
+                pending_transaction = 1'b0;
+            end
+
+            if(so.cpu_req === 1'b0) begin 
+                return;
             end
             
-            logic [TAG_WIDTH-1:0] current_tag = so.cpu_addr[ADDR_WIDTH-1:INDEX_WIDTH];
-            logic [INDEX_WIDTH-1:0] current_index = so.cpu_addr[INDEX_WIDTH-1:0];
-            logic access_way0 = (tag_array[current_index][0] == current_tag) & (valid_mem[current_index][0]);
-            logic access_way1 = (tag_array[current_index][1] == current_tag) & (valid_mem[current_index][1]);
-
-            if(so.cpu_rw === 1'b0) begin //read cases
-                if(access_way0 || access_way1) begin //hit
-                    logic current_access_way = access_way0 ? access_way0 : access_way1;
-                    latency_counter = read_hit_latency;
-                    new_expected_rdata = data_array[current_index][current_access_way];
-                    lru_mem[current_index] = ~current_access_way;
+            current_tag = so.cpu_addr[ADDR_WIDTH-1:INDEX_WIDTH];
+            current_index = so.cpu_addr[INDEX_WIDTH-1:0];
+            access_way0 = (tag_array[current_index][0] == current_tag) & (valid_mem[current_index][0]);
+            access_way1 = (tag_array[current_index][1] == current_tag) & (valid_mem[current_index][1]);
+            pending_transaction = 1'b1;
+            if(access_way0 || access_way1) begin 
+                logic access_way = access_way0 ? 1'b0 : 1'b1;
+                update_scoreboard_hit(current_tag,current_index,access_way, so.cpu_rw, so.cpu_wdata);
+                latency_counter = hit_latency;
+            end
+            else begin 
+                logic evicted_way;
+                if(valid_mem[current_index][0] == 1'b0) begin 
+                    evicted_way = 1'b0;
                 end
-                else begin //miss
-                    logic evicted_access_way;
-                    if(valid_mem[current_index][0] == 1'b0)
-                        evicted_access_way = 1'b0;
-                    else if(valid_mem[current_index][1] == 1'b0)
-                        evicted_access_way = 1'b1;
-                    else
-                        evicted_access_way = lru_mem[current_index];
-
-
+                else if(valid_mem[current_index][1] == 1'b0) begin 
+                    evicted_way = 1'b1;
+                end
+                else begin 
+                    evicted_way = lru_mem[current_index];
+                end
+                if(dirty_mem[current_index][evicted_way]) begin 
+                    update_scoreboard_write_back(current_index, evicted_way, data_array[current_index][evicted_way]);
+                    update_scoreboard_allocate(current_tag, current_index, evicted_way, so.cpu_rw, so.cpu_wdata);
+                    latency_counter = miss_latency_allocate_and_write_back;
+                end
+                else begin 
+                    update_scoreboard_allocate(current_tag, current_index, evicted_way, so.cpu_rw, so.cpu_wdata);
+                    latency_counter = miss_latency_allocate_only;
                 end
             end
+        end
+    endtask
+
+    task update_scoreboard_hit(logic [TAG_WIDTH-1:0] current_tag, logic [INDEX_WIDTH-1:0] current_index, 
+        logic access_way, logic read_write, logic [DATA_WIDTH-1:0] write_data);
+        begin 
+            if(read_write) begin //write
+                data_array[current_index][access_way] = write_data;
+                dirty_mem[current_index][access_way] = 1'b1;
+                new_expected_rdata = data_array[current_index][access_way];
+            end
+            else begin //read
+                new_expected_rdata = data_array[current_index][access_way];
+            end
+            lru_mem[current_index] = ~access_way;
+        end
+    endtask
+
+    task update_scoreboard_write_back(logic [INDEX_WIDTH-1:0] current_index, logic evicted_way, logic [DATA_WIDTH-1:0] write_data);
+        begin 
+            main_memory[{tag_array[current_index][evicted_way],current_index}] = write_data;
+        end
+    endtask
+
+    task update_scoreboard_allocate(logic [TAG_WIDTH-1:0] current_tag, logic [INDEX_WIDTH-1:0] current_index, 
+        logic evicted_way, logic read_write, logic [DATA_WIDTH-1:0] write_data);
+        begin 
+            data_array[current_index][evicted_way] = main_memory[{current_tag,current_index}];
+            tag_array[current_index][evicted_way] = current_tag;
+            valid_mem[current_index][evicted_way] = 1'b1;
+            dirty_mem[current_index][evicted_way] = 1'b0;
+            if(read_write) begin //write
+                data_array[current_index][evicted_way] = write_data;
+                dirty_mem[current_index][evicted_way] = 1'b1;
+                new_expected_rdata = data_array[current_index][evicted_way];
+            end
+            else begin //read
+                new_expected_rdata = data_array[current_index][evicted_way];
+            end
+            lru_mem[current_index] = ~evicted_way;
         end
     endtask
 

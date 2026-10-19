@@ -2,7 +2,7 @@
 module data_array #
 (
     parameter NUM_SETS   = 8,
-    parameter NUM_WAYS   = 2,
+    localparam NUM_WAYS   = 2,
     parameter DATA_WIDTH = 32,
     localparam INDEX_WIDTH = $clog2(NUM_SETS)
 )

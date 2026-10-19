@@ -5,7 +5,6 @@ module cache_controller #
     parameter DATA_WIDTH  = 32,
 
     parameter NUM_SETS    = 8,
-    parameter NUM_WAYS    = 2,
 
     localparam INDEX_WIDTH = $clog2(NUM_SETS),
     localparam TAG_WIDTH   = ADDR_WIDTH - INDEX_WIDTH

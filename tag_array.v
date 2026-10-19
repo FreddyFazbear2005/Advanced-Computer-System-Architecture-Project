@@ -2,8 +2,8 @@
 module tag_array #
 (
     parameter NUM_SETS   = 8,
-    parameter NUM_WAYS   = 2,
     parameter TAG_WIDTH  = 7,
+    localparam NUM_WAYS = 2,
     localparam INDEX_WIDTH = $clog2(NUM_SETS)
 )
 (

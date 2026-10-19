@@ -9,7 +9,6 @@ parameter ADDR_WIDTH  = 10;
 parameter DATA_WIDTH  = 32;
 
 parameter NUM_SETS    = 8;
-parameter NUM_WAYS    = 2;
 
 parameter LATENCY   = 5;
 
@@ -55,7 +54,6 @@ cache_top
     .ADDR_WIDTH (ADDR_WIDTH),
     .DATA_WIDTH (DATA_WIDTH),
     .NUM_SETS   (NUM_SETS),
-    .NUM_WAYS   (NUM_WAYS),
     .LATENCY(LATENCY)
 )
 DUT

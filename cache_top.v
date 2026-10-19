@@ -5,7 +5,6 @@ module cache_top #
     parameter DATA_WIDTH  = 32,
 
     parameter NUM_SETS    = 8,
-    parameter NUM_WAYS    = 2,
 
     parameter LATENCY = 5,
 
@@ -119,8 +118,7 @@ wire writeback_event;
         .ADDR_WIDTH(ADDR_WIDTH),
         .DATA_WIDTH(DATA_WIDTH),
 
-        .NUM_SETS(NUM_SETS),
-        .NUM_WAYS(NUM_WAYS)
+        .NUM_SETS(NUM_SETS)
     )
     CONTROLLER
     (
@@ -194,7 +192,6 @@ wire writeback_event;
     tag_array
     #(
         .NUM_SETS(NUM_SETS),
-        .NUM_WAYS(NUM_WAYS),
         .TAG_WIDTH(TAG_WIDTH)
     )
     TAG_RAM
@@ -231,7 +228,6 @@ wire writeback_event;
     data_array
     #(
         .NUM_SETS(NUM_SETS),
-        .NUM_WAYS(NUM_WAYS),
         .DATA_WIDTH(DATA_WIDTH)
     )
     DATA_RAM

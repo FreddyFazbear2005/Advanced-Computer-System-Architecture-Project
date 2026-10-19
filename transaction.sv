@@ -4,10 +4,19 @@ class Transaction #(
     parameter NUM_SETS    = 8,
     parameter LATENCY = 5
 );
-
+    localparam INDEX_WIDTH = $clog2(NUM_SETS);
+    localparam TAG_WIDTH = ADDR_WIDTH - INDEX_WIDTH;
     rand logic cpu_rw;
     rand logic  [ADDR_WIDTH-1:0] cpu_addr;
     rand logic  [DATA_WIDTH-1:0] cpu_wdata;
+
+    constraint write_data_constraint {
+        cpu_wdata inside {[0:(1 << ADDR_WIDTH-1)]};
+    } 
+
+    constraint cpu_address_constraint {
+        cpu_addr[INDEX_WIDTH-1:0] == '0;
+    }
 endclass
 
 

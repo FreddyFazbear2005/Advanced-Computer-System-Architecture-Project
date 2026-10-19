@@ -8,7 +8,7 @@ class scoreboard #(
     mailbox #(SampledOutput #(.ADDR_WIDTH(ADDR_WIDTH),.DATA_WIDTH(DATA_WIDTH),.NUM_SETS(NUM_SETS),.LATENCY(LATENCY))) 
     monitor_to_scoreboard_mailbox;
     int number_of_transactions;
-    bit pending_transaction;
+    bit pending_memory;
 
     function new(input mailbox #(SampledOutput #(.ADDR_WIDTH(ADDR_WIDTH),.DATA_WIDTH(DATA_WIDTH),.NUM_SETS(NUM_SETS),.LATENCY(LATENCY))) 
           monitor_to_scoreboard_mailbox, input int number_of_transactions);
@@ -16,7 +16,7 @@ class scoreboard #(
           this.number_of_transactions = number_of_transactions;
           foreach(main_memory[i]) 
               main_memory[i] = i;
-          pending_transaction = 1'b0;
+          pending_memory = 1'b0;
     endfunction
 
     int current_number_of_transactions = 0;
@@ -37,8 +37,8 @@ class scoreboard #(
 
     bit rst_seen = 1'b0;
     int error_count = 0;
-    int hit_latency = 3;
-    int miss_latency_allocate_only = LATENCY + 6;
+    int hit_latency = 5;
+    int miss_latency_allocate_only = LATENCY + 4;
     int miss_latency_allocate_and_write_back = 2*LATENCY + 9;
     int latency_counter = 0;
 
@@ -46,13 +46,16 @@ class scoreboard #(
         SampledOutput #(.ADDR_WIDTH(ADDR_WIDTH),.DATA_WIDTH(DATA_WIDTH),.NUM_SETS(NUM_SETS),.LATENCY(LATENCY)) so;
         forever begin 
             monitor_to_scoreboard_mailbox.get(so);
-            if(rst_seen) 
+            if(rst_seen) begin
                 check_output(so);
-            else begin 
                 if(so.rst) 
                     reset_scoreboard();
                 else 
                     update_scoreboard(so);
+            end
+            else begin 
+                if(so.rst) 
+                    reset_scoreboard();
             end
         end
     endtask
@@ -61,14 +64,14 @@ class scoreboard #(
     task check_output(input SampledOutput #(.ADDR_WIDTH(ADDR_WIDTH),.DATA_WIDTH(DATA_WIDTH),.NUM_SETS(NUM_SETS),.LATENCY(LATENCY)) so);
         begin 
             if(so.cpu_ready === expected_cpu_ready) begin 
-                $display("[PASS], the expected cpu ready is %0h",expected_cpu_ready);
+                $display("[PASS], the expected cpu ready is %0h, at time %t",expected_cpu_ready, $time);
             end
             else begin 
                 $display("[FAIL], at time %t, expected cpu ready is %0h, actual cpu ready is %0h",$time,expected_cpu_ready,so.cpu_ready);
                 error_count++;
             end
             if(so.cpu_rdata === expected_rdata) begin 
-                $display("[PASS], the expected cpu rdata is %0h",expected_rdata);
+                $display("[PASS], the expected cpu rdata is %0h, at time %t",expected_rdata, $time);
             end
             else begin 
                 $display("[FAIL], at time %t, expected cpu rdata is %0h, actual cpu rdata is %0h",$time,expected_rdata,so.cpu_rdata);
@@ -93,8 +96,8 @@ class scoreboard #(
             rst_seen = 1'b1;
             expected_rdata = '0;
             expected_cpu_ready = '0;
+            pending_memory = 1'b0;
             latency_counter = '0;
-            pending_transaction = '0;
             new_expected_rdata = '0;
             foreach(data_array[i,j]) 
                 data_array[i][j] = '0;
@@ -123,24 +126,26 @@ class scoreboard #(
             end
             else begin 
                 latency_counter = 0;
-                expected_cpu_ready = pending_transaction;
-                if(pending_transaction) 
+                if(pending_memory) begin 
+                    expected_cpu_ready = 1'b1;
                     expected_rdata = new_expected_rdata;
-                pending_transaction = 1'b0;
+                end
+                pending_memory = 1'b0;
             end
 
             if(so.cpu_req === 1'b0) begin 
                 return;
             end
             
+            pending_memory = 1'b1;
             current_tag = so.cpu_addr[ADDR_WIDTH-1:INDEX_WIDTH];
             current_index = so.cpu_addr[INDEX_WIDTH-1:0];
             access_way0 = (tag_array[current_index][0] == current_tag) & (valid_mem[current_index][0]);
             access_way1 = (tag_array[current_index][1] == current_tag) & (valid_mem[current_index][1]);
-            pending_transaction = 1'b1;
             if(access_way0 || access_way1) begin 
                 logic access_way = access_way0 ? 1'b0 : 1'b1;
                 update_scoreboard_hit(current_tag,current_index,access_way, so.cpu_rw, so.cpu_wdata);
+                $display("Cache hit with tag = %0h and index = %0h and read_write is %0h at time %t",current_tag,current_index,so.cpu_rw, $time);
                 latency_counter = hit_latency;
             end
             else begin 
@@ -158,10 +163,14 @@ class scoreboard #(
                     update_scoreboard_write_back(current_index, evicted_way, data_array[current_index][evicted_way]);
                     update_scoreboard_allocate(current_tag, current_index, evicted_way, so.cpu_rw, so.cpu_wdata);
                     latency_counter = miss_latency_allocate_and_write_back;
+                    $display("Cache miss with tag = %0h and index = %0h and read_write is %0h, it is write back and allocate at time %t",
+                        current_tag,current_index,so.cpu_rw, $time);
                 end
                 else begin 
                     update_scoreboard_allocate(current_tag, current_index, evicted_way, so.cpu_rw, so.cpu_wdata);
                     latency_counter = miss_latency_allocate_only;
+                    $display("Cache miss with tag = %0h and index = %0h and read_write is %0h, it is allocate only at time %t",
+                        current_tag,current_index,so.cpu_rw, $time);
                 end
             end
         end

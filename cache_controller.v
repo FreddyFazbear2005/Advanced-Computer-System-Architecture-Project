@@ -363,9 +363,9 @@ end
                     // Read Cache Arrays
                     //------------------------------------------
 
-                    tag_rd_index  <= cpu_addr[INDEX_WIDTH+1:2];
-                    data_rd_index <= cpu_addr[INDEX_WIDTH+1:2];
-                    lru_set_index <= cpu_addr[INDEX_WIDTH+1:2];
+                    tag_rd_index  <= cpu_addr[INDEX_WIDTH-1:0];
+                    data_rd_index <= cpu_addr[INDEX_WIDTH-1:0];
+                    lru_set_index <= cpu_addr[INDEX_WIDTH-1:0];
 
                     state <= LOOKUP;
 

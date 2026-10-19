@@ -28,7 +28,7 @@ class driver#(
 
             vif.driver_cb.rst <= 1'b0;
 
-            repeat(10) @(vif.driver_cb);
+            @(vif.driver_cb);
         end
     endtask
 
@@ -52,6 +52,8 @@ class driver#(
             do 
               @(vif.driver_cb);
             while(vif.driver_cb.cpu_ready !== 1'b1);
+            vif.driver_cb.cpu_req <= 1'b0;
+            @(vif.driver_cb);
         end
     endtask
 

@@ -1,14 +1,16 @@
 
 module cache_top #
 (
-    parameter ADDR_WIDTH  = 32,
+    parameter ADDR_WIDTH  = 10,
     parameter DATA_WIDTH  = 32,
 
     parameter NUM_SETS    = 8,
     parameter NUM_WAYS    = 2,
 
-    parameter INDEX_WIDTH = 3,
-    parameter TAG_WIDTH   = 27
+    parameter LATENCY = 5,
+
+    localparam INDEX_WIDTH = $clog2(NUM_SETS),
+    localparam TAG_WIDTH   = ADDR_WIDTH - INDEX_WIDTH
 )
 (
     input clk,
@@ -118,10 +120,7 @@ wire writeback_event;
         .DATA_WIDTH(DATA_WIDTH),
 
         .NUM_SETS(NUM_SETS),
-        .NUM_WAYS(NUM_WAYS),
-
-        .INDEX_WIDTH(INDEX_WIDTH),
-        .TAG_WIDTH(TAG_WIDTH)
+        .NUM_WAYS(NUM_WAYS)
     )
     CONTROLLER
     (
@@ -259,8 +258,7 @@ wire writeback_event;
 
     lru_controller
     #(
-        .NUM_SETS(NUM_SETS),
-        .INDEX_WIDTH(INDEX_WIDTH)
+        .NUM_SETS(NUM_SETS)
     )
     LRU
     (
@@ -280,8 +278,9 @@ wire writeback_event;
 
     main_memory
 #(
-    .MEM_DEPTH(1024),
-    .LATENCY(5)
+    .ADDR_WIDTH(ADDR_WIDTH),
+    .DATA_WIDTH(DATA_WIDTH),
+    .LATENCY(LATENCY)
 )
 MEMORY (
         .clk(clk),

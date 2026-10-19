@@ -3,7 +3,8 @@ module data_array #
 (
     parameter NUM_SETS   = 8,
     parameter NUM_WAYS   = 2,
-    parameter DATA_WIDTH = 32
+    parameter DATA_WIDTH = 32,
+    localparam INDEX_WIDTH = $clog2(NUM_SETS)
 )
 (
     input clk,
@@ -13,7 +14,7 @@ module data_array #
     // READ PORT
     //=========================================================
 
-    input [2:0] rd_index,
+    input [INDEX_WIDTH-1:0] rd_index,
 
     output reg [DATA_WIDTH-1:0] data_way0,
     output reg [DATA_WIDTH-1:0] data_way1,
@@ -26,7 +27,7 @@ module data_array #
 
     input write_way,
 
-    input [2:0] wr_index,
+    input [INDEX_WIDTH-1:0] wr_index,
 
     input [DATA_WIDTH-1:0] wr_data
 );

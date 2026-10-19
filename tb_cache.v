@@ -11,7 +11,6 @@ parameter DATA_WIDTH  = 32;
 parameter NUM_SETS    = 8;
 parameter NUM_WAYS    = 2;
 
-parameter MEM_DEPTH = 1024;
 parameter LATENCY   = 5;
 
 //=========================================================
@@ -55,11 +54,8 @@ cache_top
 #(
     .ADDR_WIDTH (ADDR_WIDTH),
     .DATA_WIDTH (DATA_WIDTH),
-
     .NUM_SETS   (NUM_SETS),
     .NUM_WAYS   (NUM_WAYS),
-
-    .MEM_DEPTH(MEM_DEPTH),
     .LATENCY(LATENCY)
 )
 DUT
@@ -97,7 +93,7 @@ begin
 
     rst = 1'b0;
 
-    repeat(2) @(posedge clk);
+    repeat(5) @(posedge clk);
 
 end
 
@@ -124,7 +120,7 @@ endtask
 
 task cpu_read;
 
-input [31:0] address;
+input [ADDR_WIDTH-1:0] address;
 
 begin
 
@@ -158,8 +154,8 @@ endtask
 
 task cpu_write;
 
-input [31:0] address;
-input [31:0] data;
+input [ADDR_WIDTH-1:0] address;
+input [DATA_WIDTH-1:0] data;
 
 begin
 
@@ -253,6 +249,7 @@ begin
     else
     begin
         $display("FAIL");
+        $display("cpu read data should be 0x00000008, it is %0h",cpu_rdata);
         fail_count = fail_count + 1;
     end
 
@@ -273,6 +270,7 @@ begin
     else
     begin
         $display("FAIL");
+        $display("cpu read data should be 0x00000008, it is %0h",cpu_rdata);
         fail_count = fail_count + 1;
     end
 
@@ -295,6 +293,7 @@ begin
     else
     begin
         $display("FAIL");
+        $display("cpu read data should be 0xDEADBEEF, it is %0h",cpu_rdata);
         fail_count = fail_count + 1;
     end
 
@@ -317,6 +316,7 @@ begin
     else
     begin
         $display("FAIL");
+        $display("cpu read data should be 0xAAAAAAAA, it is %0h",cpu_rdata);
         fail_count = fail_count + 1;
     end
 

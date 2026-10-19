@@ -2,7 +2,7 @@
 module lru_controller #
 (
     parameter NUM_SETS    = 8,
-    parameter INDEX_WIDTH = 3
+    localparam INDEX_WIDTH = $clog2(NUM_SETS)
 )
 (
     input clk,

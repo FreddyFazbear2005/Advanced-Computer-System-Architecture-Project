@@ -1,7 +1,9 @@
 
 module main_memory #
 (
-    parameter MEM_DEPTH = 1024,
+    parameter ADDR_WIDTH = 10,
+    localparam MEM_DEPTH = (1 << ADDR_WIDTH),
+    parameter DATA_WIDTH = 32,
     parameter LATENCY   = 5
 )
 (
@@ -12,29 +14,31 @@ module main_memory #
     input mem_read,
     input mem_write,
 
-    input [31:0] mem_addr,
-    input [31:0] mem_wdata,
+    input [ADDR_WIDTH-1:0] mem_addr,
+    input [DATA_WIDTH-1:0] mem_wdata,
 
-    output reg [31:0] mem_rdata,
+    output reg [DATA_WIDTH-1:0] mem_rdata,
     output reg mem_ready
 );
 
     // Memory Array
  
 
-    reg [31:0] memory [0:MEM_DEPTH-1];
+    reg [DATA_WIDTH-1:0] memory [0:MEM_DEPTH-1];
 
 
     // Internal Registers
 
 
-    reg [31:0] addr_reg;
-    reg [31:0] wdata_reg;
+    reg [ADDR_WIDTH-1:0] addr_reg;
+    reg [DATA_WIDTH-1:0] wdata_reg;
 
     reg pending_read;
     reg pending_write;
 
-    reg [3:0] latency_counter;
+    localparam LATENCY_COUNTER_WIDTH = $clog2(LATENCY);
+
+    reg [LATENCY_COUNTER_WIDTH-1:0] latency_counter;
 
     integer i;
 
@@ -110,7 +114,7 @@ module main_memory #
                     if(pending_read)
                     begin
 
-                        mem_rdata <= memory[addr_reg[31:2]];
+                        mem_rdata <= memory[addr_reg];
 
                     end
 
@@ -121,7 +125,7 @@ module main_memory #
                     if(pending_write)
                     begin
 
-                        memory[addr_reg[31:2]] <= wdata_reg;
+                        memory[addr_reg] <= wdata_reg;
 
                     end
 

@@ -1,14 +1,14 @@
 
 module cache_controller #
 (
-    parameter ADDR_WIDTH  = 32,
+    parameter ADDR_WIDTH  = 10,
     parameter DATA_WIDTH  = 32,
 
     parameter NUM_SETS    = 8,
     parameter NUM_WAYS    = 2,
 
-    parameter INDEX_WIDTH = 3,
-    parameter TAG_WIDTH   = 27
+    localparam INDEX_WIDTH = $clog2(NUM_SETS),
+    localparam TAG_WIDTH   = ADDR_WIDTH - INDEX_WIDTH
 )
 (
     input clk,
@@ -357,8 +357,8 @@ end
                     req_addr  <= cpu_addr;
                     req_wdata <= cpu_wdata;
 
-                    req_index <= cpu_addr[INDEX_WIDTH+1:2];
-                    req_tag   <= cpu_addr[ADDR_WIDTH-1:INDEX_WIDTH+2];
+                    req_index <= cpu_addr[INDEX_WIDTH-1:0];
+                    req_tag   <= cpu_addr[ADDR_WIDTH-1:INDEX_WIDTH];
 
                     //------------------------------------------
                     // Read Cache Arrays
@@ -461,7 +461,7 @@ $display("Victim Tag   = %h", victim_tag);
     begin
 
         mem_write <= 1'b1;
-        mem_addr  <= {victim_tag, req_index, 2'b00};
+        mem_addr  <= {victim_tag, req_index};
         mem_wdata <= victim_data;
 
         state <= WRITEBACK;
@@ -511,7 +511,7 @@ end
 
                     mem_write <= 1'b1;
 
-                    mem_addr  <= {victim_tag, req_index, 2'b00};
+                    mem_addr  <= {victim_tag, req_index};
                     mem_wdata <= victim_data;
 
                 end

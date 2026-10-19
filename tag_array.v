@@ -3,14 +3,15 @@ module tag_array #
 (
     parameter NUM_SETS   = 8,
     parameter NUM_WAYS   = 2,
-    parameter TAG_WIDTH  = 27
+    parameter TAG_WIDTH  = 7,
+    localparam INDEX_WIDTH = $clog2(NUM_SETS)
 )
 (
     input clk,
     input rst,
 
     // Read Port
-    input  [2:0] rd_index,
+    input  [INDEX_WIDTH-1:0] rd_index,
 
     output reg [TAG_WIDTH-1:0] tag_way0,
     output reg [TAG_WIDTH-1:0] tag_way1,
@@ -26,7 +27,7 @@ module tag_array #
 
     input write_way,
 
-    input [2:0] wr_index,
+    input [INDEX_WIDTH-1:0] wr_index,
 
     input [TAG_WIDTH-1:0] wr_tag,
 

@@ -19,12 +19,12 @@ interface cache_interface #(
         output cpu_req;
         output cpu_rw;
         output cpu_addr;
-        input cpu_wdata;
-        output cpu_rdata;
+        output cpu_wdata;
+        input cpu_rdata;
         input cpu_ready;
     endclocking
 
-    clocking driver_cb @(posedge clk);
+    clocking monitor_cb @(posedge clk);
         input rst;
         input cpu_req;
         input cpu_rw;

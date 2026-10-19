@@ -11,8 +11,8 @@ class generator#(
     mailbox #(Transaction #(.ADDR_WIDTH(ADDR_WIDTH),.DATA_WIDTH(DATA_WIDTH),.NUM_SETS(NUM_SETS),.LATENCY(LATENCY))) 
     generator_to_driver_mailbox;
 
-    function new(mailbox #(Transaction #(.ADDR_WIDTH(ADDR_WIDTH),.DATA_WIDTH(DATA_WIDTH),.NUM_SETS(NUM_SETS),.LATENCY(LATENCY))) 
-            generator_to_driver_mailbox, int number_of_transactions);
+    function new(input mailbox #(Transaction #(.ADDR_WIDTH(ADDR_WIDTH),.DATA_WIDTH(DATA_WIDTH),.NUM_SETS(NUM_SETS),.LATENCY(LATENCY))) 
+            generator_to_driver_mailbox, input int number_of_transactions);
             if(generator_to_driver_mailbox == null) begin 
                 $fatal(1,"Generator to driver mailbox is null");
             end

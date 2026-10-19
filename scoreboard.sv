@@ -1,4 +1,4 @@
-class Scoreboard #(
+class scoreboard #(
     parameter ADDR_WIDTH  = 10,
     parameter DATA_WIDTH  = 32,
     parameter NUM_SETS    = 8,
@@ -8,9 +8,10 @@ class Scoreboard #(
     mailbox #(SampledOutput #(.ADDR_WIDTH(ADDR_WIDTH),.DATA_WIDTH(DATA_WIDTH),.NUM_SETS(NUM_SETS),.LATENCY(LATENCY))) 
     monitor_to_scoreboard_mailbox;
     int number_of_transactions;
+    bit pending_transaction;
 
-    function new(mailbox #(SampledOutput #(.ADDR_WIDTH(ADDR_WIDTH),.DATA_WIDTH(DATA_WIDTH),.NUM_SETS(NUM_SETS),.LATENCY(LATENCY))) 
-          monitor_to_scoreboard_mailbox, int number_of_transactions);
+    function new(input mailbox #(SampledOutput #(.ADDR_WIDTH(ADDR_WIDTH),.DATA_WIDTH(DATA_WIDTH),.NUM_SETS(NUM_SETS),.LATENCY(LATENCY))) 
+          monitor_to_scoreboard_mailbox, input int number_of_transactions);
           this.monitor_to_scoreboard_mailbox = monitor_to_scoreboard_mailbox;
           this.number_of_transactions = number_of_transactions;
           foreach(main_memory[i]) 
@@ -47,15 +48,17 @@ class Scoreboard #(
             monitor_to_scoreboard_mailbox.get(so);
             if(rst_seen) 
                 check_output(so);
-            if(so.rst) 
-                reset_scoreboard();
-            else 
-                update_scoreboard(so);
+            else begin 
+                if(so.rst) 
+                    reset_scoreboard();
+                else 
+                    update_scoreboard(so);
+            end
         end
     endtask
 
 
-    task check_output(SampledOutput #(.ADDR_WIDTH(ADDR_WIDTH),.DATA_WIDTH(DATA_WIDTH),.NUM_SETS(NUM_SETS),.LATENCY(LATENCY)) so);
+    task check_output(input SampledOutput #(.ADDR_WIDTH(ADDR_WIDTH),.DATA_WIDTH(DATA_WIDTH),.NUM_SETS(NUM_SETS),.LATENCY(LATENCY)) so);
         begin 
             if(so.cpu_ready === expected_cpu_ready) begin 
                 $display("[PASS], the expected cpu ready is %0h",expected_cpu_ready);
@@ -77,7 +80,7 @@ class Scoreboard #(
                     $display("Simulation ended at time %t, %d pass transactions, %d fail transactions",$time,
                         number_of_transactions-error_count,error_count);
                     if(error_count == 0) 
-                        $display("SEXY BITCHES, LESS GOOOOOO, ORGASMIC SUCCESS");
+                        $display("BITCHES THATS A PASS");
                     $finish;
                 end
             end
@@ -90,6 +93,9 @@ class Scoreboard #(
             rst_seen = 1'b1;
             expected_rdata = '0;
             expected_cpu_ready = '0;
+            latency_counter = '0;
+            pending_transaction = '0;
+            new_expected_rdata = '0;
             foreach(data_array[i,j]) 
                 data_array[i][j] = '0;
             foreach(tag_array[i,j]) 
@@ -104,7 +110,7 @@ class Scoreboard #(
     endtask
 
 
-    task update_scoreboard(SampledOutput #(.ADDR_WIDTH(ADDR_WIDTH),.DATA_WIDTH(DATA_WIDTH),.NUM_SETS(NUM_SETS),.LATENCY(LATENCY)) so);
+    task update_scoreboard(input SampledOutput #(.ADDR_WIDTH(ADDR_WIDTH),.DATA_WIDTH(DATA_WIDTH),.NUM_SETS(NUM_SETS),.LATENCY(LATENCY)) so);
         logic [TAG_WIDTH-1:0] current_tag;
         logic [INDEX_WIDTH-1:0] current_index;
         logic access_way0;
@@ -161,8 +167,8 @@ class Scoreboard #(
         end
     endtask
 
-    task update_scoreboard_hit(logic [TAG_WIDTH-1:0] current_tag, logic [INDEX_WIDTH-1:0] current_index, 
-        logic access_way, logic read_write, logic [DATA_WIDTH-1:0] write_data);
+    task update_scoreboard_hit(input logic [TAG_WIDTH-1:0] current_tag, input logic [INDEX_WIDTH-1:0] current_index, 
+        input logic access_way, input logic read_write, input logic [DATA_WIDTH-1:0] write_data);
         begin 
             if(read_write) begin //write
                 data_array[current_index][access_way] = write_data;
@@ -176,14 +182,14 @@ class Scoreboard #(
         end
     endtask
 
-    task update_scoreboard_write_back(logic [INDEX_WIDTH-1:0] current_index, logic evicted_way, logic [DATA_WIDTH-1:0] write_data);
+    task update_scoreboard_write_back(input logic [INDEX_WIDTH-1:0] current_index, input logic evicted_way, input logic [DATA_WIDTH-1:0] write_data);
         begin 
             main_memory[{tag_array[current_index][evicted_way],current_index}] = write_data;
         end
     endtask
 
-    task update_scoreboard_allocate(logic [TAG_WIDTH-1:0] current_tag, logic [INDEX_WIDTH-1:0] current_index, 
-        logic evicted_way, logic read_write, logic [DATA_WIDTH-1:0] write_data);
+    task update_scoreboard_allocate(input logic [TAG_WIDTH-1:0] current_tag, input logic [INDEX_WIDTH-1:0] current_index, 
+        input logic evicted_way, input logic read_write, input logic [DATA_WIDTH-1:0] write_data);
         begin 
             data_array[current_index][evicted_way] = main_memory[{current_tag,current_index}];
             tag_array[current_index][evicted_way] = current_tag;

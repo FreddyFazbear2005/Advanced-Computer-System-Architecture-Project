@@ -88,7 +88,7 @@ class scoreboard #(
                     $display("Number of misses with both write back and allocate = %d",number_of_miss_allocate_and_write_back);
                     $display("Number of misses with only allocate = %d", number_of_miss_allocate_only);
                     if(error_count == 0) 
-                        $display("BITCHES THATS A PASS");
+                        $display("It is a PASS!!!!");
                     $finish;
                 end
             end

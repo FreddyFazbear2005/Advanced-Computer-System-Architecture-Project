@@ -15,7 +15,7 @@ class Transaction #(
     } 
 
     constraint cpu_address_constraint {
-        cpu_addr[INDEX_WIDTH-1:0] == '0;
+        cpu_addr[ADDR_WIDTH-1:INDEX_WIDTH] inside {[0:20]};
     }
 endclass
 

@@ -15,7 +15,7 @@ module cache_verify;
     environment env;
     
     cache_interface #(.ADDR_WIDTH(ADDR_WIDTH),.DATA_WIDTH(DATA_WIDTH),.NUM_SETS(NUM_SETS),.LATENCY(LATENCY)) cache_inf(clk);
-    int number_of_transactions = 100;
+    int number_of_transactions = 10000;
 
 
     cache_top

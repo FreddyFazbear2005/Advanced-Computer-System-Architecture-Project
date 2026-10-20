@@ -505,15 +505,15 @@ end
 
                 end
 
-                else
-                begin
+                //else
+                //begin
 
-                    mem_write <= 1'b1;
+                    //mem_write <= 1'b1;
 
-                    mem_addr  <= {victim_tag, req_index};
-                    mem_wdata <= victim_data;
+                    //mem_addr  <= {victim_tag, req_index};
+                    //mem_wdata <= victim_data;
 
-                end
+                //end
 
             end
 
@@ -585,13 +585,13 @@ end
 
                 end
 
-                else
-                begin
+                //else
+                //begin
 
-                    mem_read <= 1'b1;
-                    mem_addr <= req_addr;
+                    //mem_read <= 1'b1;
+                    //mem_addr <= req_addr;
 
-                end
+                //end
 
             end
 

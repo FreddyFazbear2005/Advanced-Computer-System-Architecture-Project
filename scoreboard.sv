@@ -37,10 +37,13 @@ class scoreboard #(
 
     bit rst_seen = 1'b0;
     int error_count = 0;
-    int hit_latency = 5;
+    int hit_latency = 1;
     int miss_latency_allocate_only = LATENCY + 4;
-    int miss_latency_allocate_and_write_back = 2*LATENCY + 9;
+    int miss_latency_allocate_and_write_back = 2*LATENCY + 7;
     int latency_counter = 0;
+    int number_of_hits = 0;
+    int number_of_miss_allocate_only = 0;
+    int number_of_miss_allocate_and_write_back = 0;
 
     task run();
         SampledOutput #(.ADDR_WIDTH(ADDR_WIDTH),.DATA_WIDTH(DATA_WIDTH),.NUM_SETS(NUM_SETS),.LATENCY(LATENCY)) so;
@@ -80,8 +83,10 @@ class scoreboard #(
             if(so.cpu_ready) begin 
                 current_number_of_transactions++;
                 if(current_number_of_transactions >= number_of_transactions) begin 
-                    $display("Simulation ended at time %t, %d pass transactions, %d fail transactions",$time,
-                        number_of_transactions-error_count,error_count);
+                    $display("Number of failed transactions = %d, simulation ended at time %t", error_count, $time);
+                    $display("Number of hits = %d", number_of_hits);
+                    $display("Number of misses with both write back and allocate = %d",number_of_miss_allocate_and_write_back);
+                    $display("Number of misses with only allocate = %d", number_of_miss_allocate_only);
                     if(error_count == 0) 
                         $display("BITCHES THATS A PASS");
                     $finish;
@@ -126,8 +131,8 @@ class scoreboard #(
             end
             else begin 
                 latency_counter = 0;
+                expected_cpu_ready = pending_memory;
                 if(pending_memory) begin 
-                    expected_cpu_ready = 1'b1;
                     expected_rdata = new_expected_rdata;
                 end
                 pending_memory = 1'b0;
@@ -147,6 +152,7 @@ class scoreboard #(
                 update_scoreboard_hit(current_tag,current_index,access_way, so.cpu_rw, so.cpu_wdata);
                 $display("Cache hit with tag = %0h and index = %0h and read_write is %0h at time %t",current_tag,current_index,so.cpu_rw, $time);
                 latency_counter = hit_latency;
+                number_of_hits++;
             end
             else begin 
                 logic evicted_way;
@@ -165,12 +171,14 @@ class scoreboard #(
                     latency_counter = miss_latency_allocate_and_write_back;
                     $display("Cache miss with tag = %0h and index = %0h and read_write is %0h, it is write back and allocate at time %t",
                         current_tag,current_index,so.cpu_rw, $time);
+                    number_of_miss_allocate_and_write_back++;
                 end
                 else begin 
                     update_scoreboard_allocate(current_tag, current_index, evicted_way, so.cpu_rw, so.cpu_wdata);
                     latency_counter = miss_latency_allocate_only;
                     $display("Cache miss with tag = %0h and index = %0h and read_write is %0h, it is allocate only at time %t",
                         current_tag,current_index,so.cpu_rw, $time);
+                    number_of_miss_allocate_only++;
                 end
             end
         end

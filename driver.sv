@@ -37,23 +37,21 @@ class driver#(
         Transaction #(.ADDR_WIDTH(ADDR_WIDTH),.DATA_WIDTH(DATA_WIDTH),.NUM_SETS(NUM_SETS),.LATENCY(LATENCY)) tr;
         reset_dut();
         forever begin 
-            if(generator_to_driver_mailbox.try_get(tr)) begin 
-                vif.driver_cb.cpu_req <= 1'b1;
-                vif.driver_cb.cpu_rw <= tr.cpu_rw;
-                vif.driver_cb.cpu_addr <= tr.cpu_addr;
-                vif.driver_cb.cpu_wdata <= tr.cpu_wdata;
-            end
-            else begin 
-                vif.driver_cb.cpu_req <= 1'b0;
-                vif.driver_cb.cpu_rw <= '0;
-                vif.driver_cb.cpu_addr <= '0;
-                vif.driver_cb.cpu_wdata <= '0;
-            end
-            do 
-              @(vif.driver_cb);
-            while(vif.driver_cb.cpu_ready !== 1'b1);
-            vif.driver_cb.cpu_req <= 1'b0;
-            @(vif.driver_cb);
+            generator_to_driver_mailbox.get(tr);
+
+            vif.driver_cb.cpu_req   <= 1'b1;
+            vif.driver_cb.cpu_rw    <= tr.cpu_rw;
+            vif.driver_cb.cpu_addr  <= tr.cpu_addr;
+            vif.driver_cb.cpu_wdata <= tr.cpu_wdata;
+            @(vif.driver_cb);  
+
+            vif.driver_cb.cpu_req   <= 1'b0;
+            vif.driver_cb.cpu_rw    <= '0;
+            vif.driver_cb.cpu_addr  <= '0;
+            vif.driver_cb.cpu_wdata <= '0;
+
+            do @(vif.driver_cb);
+            while (vif.driver_cb.cpu_ready !== 1'b1);
         end
     endtask
 
